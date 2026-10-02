@@ -1,0 +1,62 @@
+# Configuration of log_digest; the command line overrides each setting.
+
+# The time span, in the syntax of journalctl --since/--until.
+since: -1h
+until: now
+
+# Severity, like journalctl -p: a level and everything more severe, or a
+# range FROM..TO. Levels: emerg alert crit err warning notice info debug.
+priority: warning
+
+# List the messages only up to this many; above it the digest shows the
+# table only and is sent with high priority.
+max_lines: 100
+top: 10
+
+# Messages in the journal and in rsyslog's files within this many seconds,
+# from the same host and program and with the same text, are counted once.
+duplicate_window: 5
+
+# Messages to report whatever their severity. A rule matches if all its
+# fields match; fields are host, program, message, unit (systemd unit of a
+# journal entry) and origin ("journal" or an rsyslog file). The values are
+# Python regular expressions.
+include:
+  - message: 'segfault|Out of memory|oom-kill'
+  - {program: '^smartd$', message: 'unreadable|uncorrectable'}
+
+# Messages to leave out, whatever their severity.
+exclude:
+  - {program: '^kernel$', message: 'IN=.*OUT='}
+  - host: '^test-'
+
+journal:
+  enabled: auto            # auto: if journalctl is installed
+  # --merge includes the journals of other hosts, e.g. from systemd-journal-remote
+  args: [--merge]
+
+rsyslog:
+  enabled: auto            # auto: if the configuration exists
+  config: /etc/rsyslog.conf
+  # Files the configuration does not reveal, with the severities they hold:
+  # files:
+  #   - {path: '/var/log/remote/*/errors.log', priority: err}
+
+send_empty: false
+subject: '[log_digest] {host}: {count} message(s) {span}'
+
+mail:
+  to: [root@localhost]
+  # from: log_digest@example.org
+  method: smtp             # smtp to host:port, or sendmail
+  host: localhost
+  port: 25
+  sendmail: /usr/sbin/sendmail
+
+xmpp:
+  to: []                   # JIDs, or chat rooms with chatroom: true
+  high_priority_to: []     # also notified when there are more than max_lines messages
+  chatroom: false
+  # config: /etc/go-sendxmpp.conf
+  args: []
+  full: false              # true: the whole digest instead of the summary
